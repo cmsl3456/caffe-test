@@ -1,0 +1,174 @@
+name: "SRNet"
+layer {
+	name: "data"
+	type: "ImageData"   #修改prototxt
+	top: "data"
+	top: "label"
+	include {
+		phase: TRAIN
+	}
+	transform_param {
+		scale: 0.0390625
+		mean_value: 128
+	}
+	image_data_param {
+		source: "../SR/input.txt"    #输入路径
+		root_folder: "../SR/Imgs/"   #输入路径的根目录
+		new_height: 100
+		new_width: 100
+		is_color: true
+		batch_size: 5
+		shuffle: true
+	}
+}
+
+layer {
+	name: "data"
+	type: "ImageData"
+	top: "data"
+	top: "label"
+	include {
+		phase: TEST
+	}
+	transform_param {
+		#scale:
+		#mean_value:
+	}
+	image_data_param {
+		source: ""
+		root_folder:
+		new_height:
+		new_width:
+		is_color: true
+		batch_size: 5
+		shuffle: true
+	}
+}
+
+layer {
+	name: "conv1"
+	type: "Convolution"
+	bottom: "data"
+	top: "conv1"
+	param {
+		lr_mult: 1
+		decay_mult: 1
+	}
+	param {
+		lr_mult: 2
+		decay_mult: 0
+	}
+	convolution_param {
+		num_output: 256
+		kernel_size: 11
+		stride: 1
+		weight_filler {
+			type: "gaussian"
+			std: 0.01
+		}
+		bias_filler {
+			type: "constant"
+			value: 0
+		}
+	}
+}
+layer {
+	name: "conv2"
+	type: "Convolution"
+	bottom: "conv1"
+	top: "conv2"
+	param {
+		lr_mult: 1
+		decay_mult: 1
+	}
+	param {
+		lr_mult: 2
+		decay_mult: 0
+	}
+	convolution_param {
+		num_output: 512
+		pad: 2
+		kernel_size: 1
+		weight_filler {
+			type: "gaussian"
+			std: 0.01
+		}
+		bias_filler {
+			type: "constant"
+			value: 1
+		}
+	}
+}
+layer {
+	name: "conv3"
+	type: "Convolution"
+	bottom: "conv2"
+	top: "conv3"
+	param {
+		lr_mult: 1
+		decay_mult: 1
+	}
+	param {
+		lr_mult: 2
+		decay_mult: 0
+	}
+	convolution_param {
+		num_output: 1
+		pad: 1
+		kernel_size: 3
+		weight_filler {
+			type: "gaussian"
+			std: 0.01
+		}
+		bias_filler {
+			type: "constant"
+			value: 1
+		}
+	}
+}
+layer {
+	name: "conv4"
+	type: "Convolution"
+	bottom: "conv3"
+	top: "conv4"
+	param {
+		lr_mult: 1
+		decay_mult: 1
+	}
+	param {
+		lr_mult: 2
+		decay_mult: 0
+	}
+	convolution_param {
+		num_output: 1
+		pad: 12
+		kernel_size: 25
+		weight_filler {
+			type: "gaussian"
+			std: 0.01
+		}
+		bias_filler {
+			type: "constant"
+			value: 1
+		}
+	}
+}
+layer {
+	name: "loss"
+	type: "EuclideanLoss"
+	bottom: "conv4"
+	bottom: "label"
+	top: "loss"
+}
+layer {
+  name: "loss"
+  type: "Visual"
+  bottom: "data"
+  bottom: "label"
+  bottom: "conv4"
+  visual_param {
+  save_folder: "../week1/visual-new/"
+    save_interval: 1000
+    scale: 255
+  }
+}
