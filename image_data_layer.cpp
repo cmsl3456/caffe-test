@@ -66,13 +66,13 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
     CHECK_GT(lines_.size(), skip) << "Not enough points to skip";
     lines_id_ = skip;
   }
-  cv::Mat cv_img_list[11];
+  int cv_img_list[11][64][64];
   for (int i = 0; i < 11; i++) {
     // Read an image, and use it to initialize the top blob.
     cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
                                       new_height, new_width, is_color);
     CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
-    cv_img_list[i] = cv:Mat cv_img;
+    cv_img_list[i] = cv_img[0];
   }
   /*
   // Read an image, and use it to initialize the top blob.
@@ -141,7 +141,7 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   const bool is_color = image_data_param.is_color();
   string root_folder = image_data_param.root_folder();
 
-  cv::Mat cv_img_list[11];
+  int cv_img_list[11][64][64];
   for (int i = 0; i < 11; i++) {
     // Reshape according to the first image of each batch
     // on single input batches allows for inputs of varying dimension.
@@ -149,7 +149,7 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
         new_height, new_width, is_color);
     CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
     // Use data_transformer to infer the expected blob shape from a cv_img.
-    cv_img_list[i] = cv_img;
+    cv_img_list[i] = cv_img[0];
   }
   vector<int> top_shape = this->data_transformer_->InferBlobShape(cv_img_list);
   this->transformed_data_.Reshape(top_shape);
@@ -180,15 +180,19 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     // get a blob
     timer.Start();
     CHECK_GT(lines_size, lines_id_);
-    cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
-        new_height, new_width, is_color);
-    CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
+    int cv_img_list[11][64][64];
+    for (int i = 0; i < 11; i++) {
+      cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
+          new_height, new_width, is_color);
+      CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
+      cv_img_list[i] = cv_img[0];
+    }
     read_time += timer.MicroSeconds();
     timer.Start();
     // Apply transformations (mirror, crop...) to the image
     int offset = batch->data_.offset(item_id);
     this->transformed_data_.set_cpu_data(prefetch_data + offset);
-    this->data_transformer_->Transform(cv_img, &(this->transformed_data_));
+    this->data_transformer_->Transform(cv_img_list, &(this->transformed_data_));
     trans_time += timer.MicroSeconds();
     /* add by lin */
     cv::Mat cv_label_img = ReadImageToCVMat(root_folder + lines_[lines_id_].second,
