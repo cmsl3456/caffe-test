@@ -66,7 +66,7 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
     CHECK_GT(lines_.size(), skip) << "Not enough points to skip";
     lines_id_ = skip;
   }
-  double cv_img_list[11][64][64];
+  float cv_img_list[11][64][64];
   for (int i = 0; i < 11; i++) {
     // Read an image, and use it to initialize the top blob.
     cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
@@ -74,7 +74,7 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
     CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
     for (int j = 0; j < 64; j++) {
       for (int k = 0; k < 64; k++) {
-        cv_img_list[i][j][k] = cv_img.at<double>(j, k);
+        cv_img_list[i][j][k] = cv_img.at<float>(j, k);
       }
     }
     //cv_img_list[i] = cv_img[0];
@@ -146,7 +146,7 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   const bool is_color = image_data_param.is_color();
   string root_folder = image_data_param.root_folder();
 
-  double cv_img_list[11][64][64];
+  float cv_img_list[11][64][64];
   for (int i = 0; i < 11; i++) {
     // Reshape according to the first image of each batch
     // on single input batches allows for inputs of varying dimension.
@@ -156,7 +156,7 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     // Use data_transformer to infer the expected blob shape from a cv_img.
     for (int j = 0; j < 64; j++) {
       for (int k = 0; k < 64; k++) {
-        cv_img_list[i][j][k] = cv_img.at<double>(j, k);
+        cv_img_list[i][j][k] = cv_img.at<float>(j, k);
       }
     }
     //cv_img_list[i] = cv_img[0];
@@ -190,14 +190,14 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     // get a blob
     timer.Start();
     CHECK_GT(lines_size, lines_id_);
-    double cv_img_list[11][64][64];
+    float cv_img_list[11][64][64];
     for (int i = 0; i < 11; i++) {
       cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
           new_height, new_width, is_color);
       CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
       for (int j = 0; j < 64; j++) {
         for (int k = 0; k < 64; k++) {
-          cv_img_list[i][j][k] = cv_img.at<double>(j, k);
+          cv_img_list[i][j][k] = cv_img.at<float>(j, k);
         }
       }
       //cv_img_list[i] = cv_img[0];
@@ -205,7 +205,8 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     read_time += timer.MicroSeconds();
     timer.Start();
     // Apply transformations (mirror, crop...) to the image
-    int offset = batch->data_.offset(item_id);
+    //int offset = batch->data_.offset(item_id);
+    int offset = item_id * 11 * 64 * 64;
     this->transformed_data_.set_cpu_data(prefetch_data + offset);
     this->data_transformer_->Transform(cv_img_list, &(this->transformed_data_));
     trans_time += timer.MicroSeconds();
