@@ -66,13 +66,18 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
     CHECK_GT(lines_.size(), skip) << "Not enough points to skip";
     lines_id_ = skip;
   }
-  int cv_img_list[11][64][64];
+  float cv_img_list[11][64][64];
   for (int i = 0; i < 11; i++) {
     // Read an image, and use it to initialize the top blob.
     cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
                                       new_height, new_width, is_color);
     CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
-    cv_img_list[i] = cv_img[0];
+    for (int j = 0; j < 64; j++) {
+      for (int k = 0; k < 64; k++) {
+        cv_img_list[i][j][k] = cv_img.at<float>(j, k);
+      }
+    }
+    //cv_img_list[i] = cv_img[0];
   }
   /*
   // Read an image, and use it to initialize the top blob.
@@ -141,7 +146,7 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   const bool is_color = image_data_param.is_color();
   string root_folder = image_data_param.root_folder();
 
-  int cv_img_list[11][64][64];
+  float cv_img_list[11][64][64];
   for (int i = 0; i < 11; i++) {
     // Reshape according to the first image of each batch
     // on single input batches allows for inputs of varying dimension.
@@ -149,7 +154,12 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
         new_height, new_width, is_color);
     CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
     // Use data_transformer to infer the expected blob shape from a cv_img.
-    cv_img_list[i] = cv_img[0];
+    for (int j = 0; j < 64; j++) {
+      for (int k = 0; k < 64; k++) {
+        cv_img_list[i][j][k] = cv_img.at<float>(j, k);
+      }
+    }
+    //cv_img_list[i] = cv_img[0];
   }
   vector<int> top_shape = this->data_transformer_->InferBlobShape(cv_img_list);
   this->transformed_data_.Reshape(top_shape);
@@ -159,8 +169,8 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
 
   /* add by lin */
   cv::Mat cv_label_img = ReadImageToCVMat(root_folder + lines_[lines_id_].second,
-      new_height, new_width, is_color);
-  CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].second;
+      new_height, new_width, 0);
+  CHECK(cv_label_img.data) << "Could not load " << lines_[lines_id_].second;
   //vector<int> top_label_shape = this->data_transformer_->InferBlobShape(cv_label_img);
   //this->transformed_data_.Reshape(top_label_shape);
   vector<int> top_label_shape(4);
@@ -180,12 +190,17 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     // get a blob
     timer.Start();
     CHECK_GT(lines_size, lines_id_);
-    int cv_img_list[11][64][64];
+    float cv_img_list[11][64][64];
     for (int i = 0; i < 11; i++) {
       cv::Mat cv_img = ReadImageToCVMat(root_folder + lines_[lines_id_].first,
           new_height, new_width, is_color);
       CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
-      cv_img_list[i] = cv_img[0];
+      for (int j = 0; j < 64; j++) {
+        for (int k = 0; k < 64; k++) {
+          cv_img_list[i][j][k] = cv_img.at<float>(j, k);
+        }
+      }
+      //cv_img_list[i] = cv_img[0];
     }
     read_time += timer.MicroSeconds();
     timer.Start();
