@@ -108,13 +108,13 @@ void ImageDataLayer<Dtype>::DataLayerSetUp(const vector<Blob<Dtype>*>& bottom,
   // label
   /* add by lin */
   cv::Mat cv_label_img = ReadImageToCVMat(root_folder + lines_[lines_id_].second,
-                                    64, 64, 0);
+                                    64, 64, is_color);
   CHECK(cv_label_img.data) << "Could not load " << lines_[lines_id_].second;
   //vector<int> label_shape = this->data_transformer_->InferBlobShape(cv_label_img);
   //this->transformed_data_.Reshape(label_shape);
   vector<int> label_shape(4);
   label_shape[0] = batch_size;
-  label_shape[1] = 1;
+  label_shape[1] = 3;
   label_shape[2] = 64;
   label_shape[3] = 64;
   top[1]->Reshape(label_shape);
@@ -151,7 +151,6 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
   string root_folder = image_data_param.root_folder();
   
   vector<cv::Mat> cv_img_list;
-  //int cv_img_list[11][64][64];
   for (int i = 0; i < 11; i++) {
     // Reshape according to the first image of each batch
     // on single input batches allows for inputs of varying dimension.
@@ -160,14 +159,6 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     CHECK(cv_img.data) << "Could not load " << lines_[lines_id_].first;
     // Use data_transformer to infer the expected blob shape from a cv_img.
     cv_img_list.push_back(cv_img);
-    /*
-    for (int j = 0; j < 64; j++) {
-      for (int k = 0; k < 64; k++) {
-        cv_img_list[i][j][k] = cv_img.at<int>(j, k);
-      }
-    }
-    */
-    //cv_img_list[i] = cv_img[0];
   }
   vector<int> top_shape = this->data_transformer_->InferBlobShape(cv_img_list);
   this->transformed_data_.Reshape(top_shape);
@@ -177,13 +168,13 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
 
   /* add by lin */
   cv::Mat cv_label_img = ReadImageToCVMat(root_folder + lines_[lines_id_].second,
-      new_height, new_width, 0);
+      new_height, new_width, is_color);
   CHECK(cv_label_img.data) << "Could not load " << lines_[lines_id_].second;
   //vector<int> top_label_shape = this->data_transformer_->InferBlobShape(cv_label_img);
   //this->transformed_data_.Reshape(top_label_shape);
   vector<int> top_label_shape(4);
   top_label_shape[0] = batch_size;
-  top_label_shape[1] = 1;
+  top_label_shape[1] = 3;
   top_label_shape[2] = 64;
   top_label_shape[3] = 64;
   batch->label_.Reshape(top_label_shape);
@@ -218,15 +209,13 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
     timer.Start();
     // Apply transformations (mirror, crop...) to the image
     //int offset = batch->data_.offset(item_id);
-    int offset = item_id * 11 * 64 * 64;
+    int offset = item_id * 11 * 3 * 64 * 64;
     this->transformed_data_.set_cpu_data(prefetch_data + offset);
     this->data_transformer_->Transform(cv_img_list, &(this->transformed_data_));
     trans_time += timer.MicroSeconds();
     /* add by lin */
     cv::Mat cv_label_img = ReadImageToCVMat(root_folder + lines_[lines_id_].second,
-                                    64, 64, 0);
-    
-    
+                                    64, 64, is_color);
     
     //this->transformed_data_.set_cpu_data(prefetch_label + offset);
     //this->data_transformer_->Transform(cv_label_img, &(this->transformed_data_));
@@ -247,17 +236,22 @@ void ImageDataLayer<Dtype>::load_batch(Batch<Dtype>* batch) {
    }
   */
 
-    offset = item_id * 64 * 64;
-    for(int r = 0; r < 64; ++r) {
-      for(int c = 0; c < 64; ++c) {
-        if(int(cv_label_img.at<unsigned char>(r, c)) == 0) 
-          prefetch_label[offset] = Dtype(0);
-        else
-          prefetch_label[offset] = Dtype(1);
-
-        ++offset;
+    offset = item_id * 3 * 64 * 64;
+    for (int i = 0; i < 3; i++) {
+      for(int r = 0; r < 64; ++r) {
+        for(int c = 0; c < 64; ++c) {
+          prefetch_label[offset] = cv_label_img.at<int>(r, c)[i];
+          /*
+          if(int(cv_label_img.at<unsigned char>(r, c)) == 0) 
+            prefetch_label[offset] = Dtype(0);
+          else
+            prefetch_label[offset] = Dtype(1);
+          */
+          ++offset;
+        }
       }
     }
+
 
 
     //prefetch_label[item_id] = lines_[lines_id_].second;
